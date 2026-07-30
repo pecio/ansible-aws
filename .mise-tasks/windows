@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Create Windows instances"
+#MISE depends=["setup"]
+ansible-playbook windows.yml

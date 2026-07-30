@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Create Linux instances"
+#MISE depends=["setup"]
+ansible-playbook playbook.yml

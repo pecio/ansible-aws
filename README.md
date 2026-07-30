@@ -13,14 +13,14 @@
 - `ansible.cfg`: Configures Ansible to use `inventory` as inventory source and silences Python detection warning.
 - `index.hmtl.j2`: Jinja2 template for the sample page.
 - `inventory`: The list of instance names to create and configure.
-- `LICENSE`: MIT License
-- `mise.toml`: [Mise-en-place](https://mise.en.dev) configuration for installing Ansible Core
-- `README.md`: This file
+- `LICENSE`: MIT License.
+- `mise.toml`: [Mise-en-place](https://mise.en.dev) configuration for installing Ansible Core and AWS CLI.
+- `README.md`: This file.
 
 ## Requirements
 
 - Pip package `boto3`.
-- AWS CLI installed and configured
-- AWS Session Manager Plugin
-- A supported Ansible Core version (currently 2.19, 2.20, 2.21)
-- `SSM_BUCKET` environment variable with the name of an S3 Bucket we have access to (versioning disabled recommended)
+- AWS CLI installed and configured.
+- AWS Session Manager Plugin.
+- A supported Ansible Core version (currently 2.19, 2.20, 2.21) with `ansible.windows` and `amazon.aws` collections.
+- `SSM_BUCKET` environment variable with the name of an S3 Bucket we have access to (versioning disabled recommended).

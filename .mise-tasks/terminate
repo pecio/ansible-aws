@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+#MISE description="Terminate instances"
+ansible-playbook terminate.yml

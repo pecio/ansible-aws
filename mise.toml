@@ -1,3 +1,4 @@
 [tools]
 ansible-core = "latest"
+awscli = { version = "latest", symlink_bins = "true" }
 pipx = "latest"

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+#MISE description="Sanity checks and Ansible collections installation."
+if ! aws sts get-caller-identity >/dev/null
+then
+  echo "You must configure AWS CLI!" >&2
+  FAIL=1
+fi
+if [[ -z "${SSM_BUCKET}" ]]
+then
+  echo "You must set SSM_BUCKET environment variable!" >&2
+  FAIL=1
+fi
+if [[ "${FAIL}" -eq 1 ]]
+then
+  exit 1
+fi
+ansible-galaxy collection install -r requirements.yml
