@@ -1,2 +1,6 @@
 alfa
 beta
+[all:vars]
+linux_instance_type = t4g.micro
+windows_instance_type = t3.small
+security_group_name = web

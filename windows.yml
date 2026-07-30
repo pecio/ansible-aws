@@ -4,12 +4,9 @@
     - all
   gather_facts: false
   vars:
-    instance_type: t3.small
-    security_group_name: web
     ami:
       owner: amazon
       name_glob: "Windows_Server-2025-English-Core-Base-*"
-    instance_profile_name: InstanceRole
     ssm_bucket: "{{ lookup('env', 'SSM_BUCKET') }}"
   tasks:
     - name: Get region
@@ -63,16 +60,15 @@
         name: "{{ inventory_hostname }}"
         state: started
         image_id: "{{ ami.image_id }}"
-        instance_type: "{{ instance_type }}"
+        instance_type: "{{ windows_instance_type }}"
         vpc_subnet_id: "{{ subnet_id }}"
         security_groups: "{{ security_group_info.security_groups | map(attribute='group_id') | list }}"
         metadata_options:
           http_tokens: required
-          http_put_response_hop_limit: 2
+          http_put_response_hop_limit: 1
           http_endpoint: enabled
         network:
           assign_public_ip: true
-        iam_instance_profile: "{{ instance_profile_name | default(omit) }}"
       register: ec2_instance
 
     - name: Setup instance facts
