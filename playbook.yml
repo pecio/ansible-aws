@@ -10,7 +10,7 @@
       owner: 764336703387  # AlmaLinux OS
       name_glob: "AlmaLinux OS 10.* aarch64"
     instance_profile_name: InstanceRole
-    ssm_bucket: ssm-604509959297-eu-west-3-an
+    ssm_bucket: "{{ lookup('env', 'SSM_BUCKET') }}"
   tasks:
     - name: Get region
       delegate_to: localhost
