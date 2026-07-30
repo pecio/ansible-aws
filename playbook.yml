@@ -1,0 +1,115 @@
+---
+- name: Create and configure instances
+  hosts:
+    - all
+  gather_facts: false
+  vars:
+    instance_type: t4g.micro
+    security_group_name: web
+    ami:
+      owner: 764336703387  # AlmaLinux OS
+      name_glob: "AlmaLinux OS 10.* aarch64"
+    instance_profile_name: InstanceRole
+    ssm_bucket: ssm-604509959297-eu-west-3-an
+  tasks:
+    - name: Get region
+      delegate_to: localhost
+      amazon.aws.aws_az_info:
+        filters:
+          state: available
+      register: az_info
+      run_once: true
+
+    - name: Get subnets
+      delegate_to: localhost
+      amazon.aws.ec2_vpc_subnet_info: {}
+      register: subnet_info
+      run_once: true
+
+    - name: Get security group
+      delegate_to: localhost
+      amazon.aws.ec2_security_group_info:
+        filters:
+          group-name: "{{ security_group_name }}"
+      register: security_group_info
+      run_once: true
+
+    - name: Distribute hosts across subnets
+      ansible.builtin.set_fact:
+        subnet_id: "{{ subnet_info.subnets[subnet_index].subnet_id }}"
+      vars:
+        ansible_play_hosts: "{{ ansible_play_hosts | sort }}"
+        ansible_play_hosts_count: "{{ ansible_play_hosts | length }}"
+        ansible_play_hosts_index: "{{ ansible_play_hosts.index(inventory_hostname) }}"
+        subnet_count: "{{ subnet_info.subnets | length }}"
+        subnet_index: "{{ ansible_play_hosts_index % subnet_count }}"
+
+    - name: Get AMI
+      delegate_to: localhost
+      amazon.aws.ec2_ami_info:
+        owners: "{{ ami.owner }}"
+        filters:
+          name: "{{ ami.name_glob }}"
+      register: ami_info
+      run_once: true
+
+    - name: Set AMI
+      ansible.builtin.set_fact:
+        ami: "{{ ami_info.images | sort(attribute='creation_date') | last }}"
+
+    - name: Create EC2 instance
+      delegate_to: localhost
+      amazon.aws.ec2_instance:
+        name: "{{ inventory_hostname }}"
+        state: running
+        image_id: "{{ ami.image_id }}"
+        instance_type: "{{ instance_type }}"
+        vpc_subnet_id: "{{ subnet_id }}"
+        security_groups: "{{ security_group_info.security_groups | map(attribute='group_id') | list }}"
+        metadata_options:
+          http_tokens: required
+          http_put_response_hop_limit: 2
+          http_endpoint: enabled
+        network_interfaces:
+          - assign_public_ip: true
+        iam_instance_profile: "{{ instance_profile_name | default(omit) }}"
+      register: ec2_instance
+
+    - name: Setup instance facts
+      ansible.builtin.set_fact:
+        ansible_connection: amazon.aws.aws_ssm
+        ansible_host: "{{ instance_id }}"
+        ansible_aws_ssm_region: "{{ az_info.availability_zones[0].region_name }}"
+        ansible_aws_ssm_bucket_name: "{{ ssm_bucket }}"
+        ansible_aws_ssm_retries: 5
+      vars:
+        instance_id: "{{ ec2_instance.instances[0].instance_id }}"
+
+    - name: Wait for instance to be ready
+      ansible.builtin.wait_for_connection:
+        delay: 10
+        timeout: 300
+
+    - name: Install Nginx
+      become: true
+      ansible.builtin.dnf:
+        name:
+          - nginx
+
+    - name: Start and enable Nginx service
+      become: true
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: true
+
+    - name: Create web page
+      become: true
+      ansible.builtin.template:
+        dest: /usr/share/nginx/html/index.html
+        src: index.html.j2
+        mode: '0644'
+
+    - name: Show IP address of the instance
+      ansible.builtin.debug:
+        msg: "Instance {{ ec2_instance.instances[0].instance_id }} is running at IP {{ ec2_instance.instances[0].public_ip_address }}"

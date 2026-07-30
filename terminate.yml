@@ -1,0 +1,14 @@
+---
+- name: Terminate instances
+  hosts:
+    - all
+  gather_facts: false
+  tasks:
+    - name: Terminate instance
+      delegate_to: localhost
+      amazon.aws.ec2_instance:
+        state: terminated
+        name: '{{ inventory_hostname }}'
+        filters:
+          instance-state-name: running
+          "tag:Name": "{{ inventory_hostname }}"
