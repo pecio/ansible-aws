@@ -1,0 +1,64 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for ec2_instance
+- name: Get region
+  delegate_to: localhost
+  amazon.aws.aws_az_info:
+    filters:
+      state: available
+  register: az_info
+  run_once: true
+
+- name: Get subnets
+  delegate_to: localhost
+  amazon.aws.ec2_vpc_subnet_info: {}
+  register: subnet_info
+  run_once: true
+
+- name: Get security group
+  delegate_to: localhost
+  amazon.aws.ec2_security_group_info:
+    filters:
+      group-name: "{{ security_group_name }}"
+  register: security_group_info
+  run_once: true
+
+- name: Distribute hosts across subnets
+  ansible.builtin.set_fact:
+    subnet_id: "{{ subnet_info.subnets[subnet_index].subnet_id }}"
+  vars:
+    ansible_play_hosts: "{{ ansible_play_hosts | sort }}"
+    ansible_play_hosts_count: "{{ ansible_play_hosts | length }}"
+    ansible_play_hosts_index: "{{ ansible_play_hosts.index(inventory_hostname) }}"
+    subnet_count: "{{ subnet_info.subnets | length }}"
+    subnet_index: "{{ ansible_play_hosts_index % subnet_count }}"
+
+- name: Get AMI
+  delegate_to: localhost
+  amazon.aws.ec2_ami_info:
+    owners: "{{ ami_owner }}"
+    filters:
+      name: "{{ ami_name_glob }}"
+  register: ami_info
+  run_once: true
+
+- name: Set AMI
+  ansible.builtin.set_fact:
+    ami: "{{ ami_info.images | sort(attribute='creation_date') | last }}"
+
+- name: Create EC2 instance
+  delegate_to: localhost
+  amazon.aws.ec2_instance:
+    name: "{{ inventory_hostname }}"
+    state: running
+    image_id: "{{ ami.image_id }}"
+    instance_type: "{{ instance_type }}"
+    vpc_subnet_id: "{{ subnet_id }}"
+    security_groups: "{{ security_group_info.security_groups | map(attribute='group_id') | list }}"
+    metadata_options:
+      http_tokens: required
+      http_put_response_hop_limit: 1
+      http_endpoint: enabled
+    network_interfaces:
+      - assign_public_ip: true
+  register: ec2_instance
