@@ -15,7 +15,9 @@
 - `inventory`: The list of instance names to create and configure.
 - `LICENSE`: MIT License.
 - `mise.toml`: [Mise-en-place](https://mise.en.dev) configuration for installing Ansible Core and AWS CLI.
+- `.mise-tasks/*`: Task definitions for Mise-en-place.
 - `README.md`: This file.
+- `requirements.yml`: Ansible Galaxy requirements.
 
 ## Requirements
 
